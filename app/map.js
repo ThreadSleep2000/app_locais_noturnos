@@ -1,12 +1,47 @@
-import { Text, View, StyleSheet } from 'react-native';
-import { router } from "expo-router";
-import { Pressable} from "react-native";
-
+import React from "react";
+import { View, Text, StyleSheet, TextInput, ImageBackground, TouchableOpacity } from "react-native";
+import { router } from 'expo-router';
 
 export default function Map() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Home screen</Text>
+
+      {/* IMAGEM DO MAPA */}
+      <ImageBackground
+        source={require("../assets/images/mapa.png")}
+        style={styles.mapa}
+      >
+
+        {/* BARRA DE BUSCA SOBRE O MAPA */}
+        <View style={styles.searchBox}>
+          <TextInput
+            placeholder="Buscar local..."
+            placeholderTextColor="#666"
+            style={styles.searchInput}
+          />
+        </View>
+
+        {/* BOTÕES NO CANTO INFERIOR DIREITO */}
+        <View style={styles.botoesContainer}>
+
+          <TouchableOpacity 
+            style={[styles.botao, styles.filtrosButton]}
+            onPress={() => router.push('/filtros')}
+          >
+            <Text style={styles.botaoTexto}>Filtros</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.botao, styles.detalhesButton]}
+            onPress={() => router.push('/localDetails')}
+          >
+            <Text style={styles.botaoTexto}>Detalhes</Text>
+          </TouchableOpacity>
+
+        </View>  
+
+      </ImageBackground>
+
     </View>
   );
 }
@@ -14,28 +49,58 @@ export default function Map() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#25292e',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  text: {
-    color: '#fff',
+  mapa: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
   },
-});
 
-<Pressable
-  onPress={() => router.push("/localDetails")}
-  style={{
+  // Barra de Busca
+  searchBox: {
+    position: "absolute",
+    top: 50,
+    width: "90%",
+    alignSelf: "center",
+  },
+  searchInput: {
+    height: 45,
+    borderRadius: 10,
+    backgroundColor: "white",
+    paddingHorizontal: 15,
+    fontSize: 16,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+
+  // Botões
+  botoesContainer: {
     position: "absolute",
     bottom: 40,
     right: 20,
-    backgroundColor: "#0066ff",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    elevation: 4,
-  }}
->
-  <Text style={{ color: "#fff", fontSize: 16 }}>Abrir Local</Text>
-</Pressable>
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 12,
+  },
+  botao: {
+    backgroundColor: "#000",
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    opacity: 0.85,
+  },
+  botaoTexto: {
+    color: "#fff",
+    fontSize: 16,
+  },
 
+  filtrosButton: {
+    backgroundColor: "#4A90E2",
+  },
+  detalhesButton: {
+    backgroundColor: "#50E3C2",
+  },
+});
