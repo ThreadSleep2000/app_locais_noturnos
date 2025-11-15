@@ -1,20 +1,25 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from "react-native";
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { VENUE_TYPE_LIST } from "../constants/venueTypes";
 
 export default function Filtros() {
-  const categorias = [
-    { id: 'Bares', nome: 'Bares', icone: 'beer' },
-    { id: 'Restaurantes', nome: 'Restaurantes', icone: 'restaurant' },
-    { id: 'Baladas', nome: 'Baladas', icone: 'musical-notes' },
-    { id: 'Cafés', nome: 'Cafés', icone: 'cafe' },
-    { id: 'Lanchonetes', nome: 'Lanchonetes', icone: 'fast-food' },
-    { id: 'Adegas', nome: 'Adegas', icone: 'wine' },
-    { id: 'Food Trucks', nome: 'Food Trucks', icone: 'bus' },
-  ];
-
+  const params = useLocalSearchParams();
   const [selecionados, setSelecionados] = useState([]);
+
+  useEffect(() => {
+    if (params.selecionados) {
+      try {
+        const parsed = JSON.parse(params.selecionados);
+        if (Array.isArray(parsed)) {
+          setSelecionados(parsed);
+        }
+      } catch {
+        // ignore parsing errors
+      }
+    }
+  }, [params.selecionados]);
 
   function toggleFiltro(item) {
     if (selecionados.includes(item)) {
@@ -25,7 +30,7 @@ export default function Filtros() {
   }
 
   function aplicarFiltros() {
-    router.push({
+    router.replace({
       pathname: '/map',
       params: { filtros: JSON.stringify(selecionados) }
     });
@@ -51,7 +56,7 @@ export default function Filtros() {
       </View>
 
       <ScrollView style={styles.lista}>
-        {categorias.map((item) => (
+        {VENUE_TYPE_LIST.map((item) => (
           <TouchableOpacity
             key={item.id}
             style={[
@@ -63,16 +68,16 @@ export default function Filtros() {
             <View style={styles.itemContent}>
               <View style={styles.iconeContainer}>
                 <Ionicons 
-                  name={item.icone} 
+                  name={item.icon} 
                   size={24} 
-                  color={selecionados.includes(item.id) ? "#fff" : "#6C47FF"} 
+                  color={selecionados.includes(item.id) ? "#fff" : item.color} 
                 />
               </View>
               <Text style={[
                 styles.textoItem,
                 selecionados.includes(item.id) && styles.textoItemSelecionado
               ]}>
-                {item.nome}
+                {item.label}
               </Text>
             </View>
 

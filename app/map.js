@@ -1,14 +1,23 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, Modal } from "react-native";
+import Slider from "@react-native-community/slider";
 import { useJsApiLoader, GoogleMap, MarkerF } from "@react-google-maps/api";
 import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { buscarEstabelecimentosNoturnos, buscarPorTexto } from "../services/googlePlaces";
+import {
+  buscarEstabelecimentosNoturnos,
+  buscarPorTexto,
+  buscarLugaresProximos as buscarLugaresPorTipo,
+  kmToMeters,
+} from "../services/googlePlaces";
+import { VENUE_TYPES, getVenueConfigByTypes } from "../constants/venueTypes";
+import { filterPlacesWithinRadius } from "../utils/distance";
 
 export default function MapWeb() {
   const params = useLocalSearchParams();
   const mapRef = useRef(null);
+  const markerIconCache = useRef({});
 
   const [carregando, setCarregando] = useState(true);
   const [buscando, setBuscando] = useState(false);
@@ -17,15 +26,18 @@ export default function MapWeb() {
   const [lugares, setLugares] = useState([]);
   const [filtrosAtivos, setFiltrosAtivos] = useState([]);
   const [localizacaoAtual, setLocalizacaoAtual] = useState(null);
+  const [radiusKm, setRadiusKm] = useState(2);
+  const [radiusModalVisible, setRadiusModalVisible] = useState(false);
+  const [radiusDraft, setRadiusDraft] = useState(2);
 
   const filtrosParaTipos = useMemo(() => ({
-    Bares: "bar",
-    Restaurantes: "restaurant",
-    Baladas: "night_club",
-    Cafés: "cafe",
-    Lanchonetes: "meal_takeaway",
-    Adegas: "liquor_store",
-    "Food Trucks": "meal_takeaway",
+    Bares: VENUE_TYPES.Bares.googleType,
+    Restaurantes: VENUE_TYPES.Restaurantes.googleType,
+    Baladas: VENUE_TYPES.Baladas.googleType,
+    Cafés: VENUE_TYPES["Cafés"].googleType,
+    Lanchonetes: VENUE_TYPES.Lanchonetes.googleType,
+    Adegas: VENUE_TYPES.Adegas.googleType,
+    "Food Trucks": VENUE_TYPES["Food Trucks"].googleType,
   }), []);
 
   const { isLoaded, loadError } = useJsApiLoader({
@@ -51,7 +63,7 @@ export default function MapWeb() {
     if (localizacaoAtual) {
       buscarLugaresProximos();
     }
-  }, [localizacaoAtual, filtrosAtivos]);
+  }, [localizacaoAtual, buscarLugaresProximos]);
 
   const obterLocalizacao = async () => {
     try {
@@ -72,40 +84,42 @@ export default function MapWeb() {
     }
   };
 
-  const buscarPorTipo = async (lat, lng, tipo) => {
-    try {
-      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=${tipo}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      return data.status === "OK" ? data.results : [];
-    } catch (error) {
-      console.error("Erro ao buscar por tipo (web):", error);
-      return [];
-    }
-  };
-
-  const buscarLugaresProximos = async () => {
+  const buscarLugaresProximos = useCallback(async (customRadiusKm) => {
     if (!localizacaoAtual) return;
     setBuscando(true);
     try {
       let resultados = [];
+      const radiusBaseKm = typeof customRadiusKm === "number" ? customRadiusKm : radiusKm;
+      const radiusMeters = kmToMeters(radiusBaseKm);
       if (filtrosAtivos.length > 0) {
         const promises = filtrosAtivos.map((f) => {
           const tipo = filtrosParaTipos[f] || "restaurant";
-          return buscarPorTipo(localizacaoAtual.latitude, localizacaoAtual.longitude, tipo);
+          return buscarLugaresPorTipo(
+            localizacaoAtual.latitude,
+            localizacaoAtual.longitude,
+            tipo,
+            radiusMeters
+          );
         });
         const todosResultados = await Promise.all(promises);
         resultados = todosResultados.flat();
-        resultados = resultados.filter((lugar, index, self) => index === self.findIndex((l) => l.place_id === lugar.place_id));
+        resultados = resultados.filter(
+          (lugar, index, self) => index === self.findIndex((l) => l.place_id === lugar.place_id)
+        );
       } else {
-        resultados = await buscarEstabelecimentosNoturnos(localizacaoAtual.latitude, localizacaoAtual.longitude, 5000);
+        resultados = await buscarEstabelecimentosNoturnos(
+          localizacaoAtual.latitude,
+          localizacaoAtual.longitude,
+          radiusMeters
+        );
       }
-      setLugares(resultados);
+      const filtrados = filterPlacesWithinRadius(resultados, localizacaoAtual, radiusMeters);
+      setLugares(filtrados);
     } catch (error) {
       console.error("Erro ao buscar lugares (web):", error);
     }
     setBuscando(false);
-  };
+  }, [localizacaoAtual, filtrosAtivos, radiusKm, filtrosParaTipos]);
 
   const realizarBusca = async () => {
     if (!buscaTexto.trim() || !localizacaoAtual) return;
@@ -115,9 +129,10 @@ export default function MapWeb() {
         buscaTexto,
         localizacaoAtual.latitude,
         localizacaoAtual.longitude,
-        10000
+        kmToMeters(radiusKm)
       );
-      setLugares(resultados);
+      const filtrados = filterPlacesWithinRadius(resultados, localizacaoAtual, kmToMeters(radiusKm));
+      setLugares(filtrados);
     } catch (error) {
       console.error("Erro ao buscar (web):", error);
     }
@@ -157,6 +172,28 @@ export default function MapWeb() {
     }
   };
 
+  const abrirModalRaio = () => {
+    setRadiusDraft(radiusKm);
+    setRadiusModalVisible(true);
+  };
+
+  const cancelarModalRaio = () => {
+    setRadiusModalVisible(false);
+  };
+
+  const aplicarRaio = () => {
+    setRadiusKm(radiusDraft);
+    setRadiusModalVisible(false);
+    buscarLugaresProximos(radiusDraft);
+  };
+
+  const abrirFiltros = () => {
+    router.push({
+      pathname: "/filtros",
+      params: { selecionados: JSON.stringify(filtrosAtivos) },
+    });
+  };
+
   if (carregando || !isLoaded) {
     return (
       <View style={[styles.fill, styles.loadingContainer]}>
@@ -165,6 +202,32 @@ export default function MapWeb() {
       </View>
     );
   }
+
+  const formatRadiusLabel = () => `${radiusKm.toFixed(1)} km`;
+  const formatRadiusDraftLabel = () => `${radiusDraft.toFixed(1)} km`;
+
+  const getMarkerIcon = (color, label) => {
+    if (!window?.google?.maps) return null;
+    const cacheKey = `${color}-${label}`;
+    if (markerIconCache.current[cacheKey]) {
+      return markerIconCache.current[cacheKey];
+    }
+
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+      <svg width="52" height="72" viewBox="0 0 52 72" xmlns="http://www.w3.org/2000/svg">
+        <path d="M26 0C13.297 0 2.999 10.298 3 23.001C3.001 38.52 26 72 26 72C26 72 48.999 38.52 49 23.001C49.001 10.298 38.703 0 26 0Z" fill="${color}"/>
+        <circle cx="26" cy="24" r="14" fill="rgba(255,255,255,0.85)" />
+        <text x="26" y="29" text-anchor="middle" font-family="Arial" font-size="16" fill="${color}" font-weight="700">${label}</text>
+      </svg>`;
+
+    markerIconCache.current[cacheKey] = {
+      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+      scaledSize: new window.google.maps.Size(40, 55),
+      anchor: new window.google.maps.Point(20, 55),
+    };
+
+    return markerIconCache.current[cacheKey];
+  };
 
   return (
     <View style={styles.container}>
@@ -176,17 +239,22 @@ export default function MapWeb() {
           zoom={14}
           options={{ streetViewControl: false, fullscreenControl: false }}
         >
-          {lugares.map((lugar) => (
-            <MarkerF
-              key={lugar.place_id}
-              position={{
-                lat: lugar.geometry.location.lat,
-                lng: lugar.geometry.location.lng,
-              }}
-              title={lugar.name}
-              onClick={() => abrirDetalhes(lugar)}
-            />
-          ))}
+          {lugares.map((lugar) => {
+            const config = getVenueConfigByTypes(lugar.types) || VENUE_TYPES.Bares;
+            const iconConfig = getMarkerIcon(config.color, config.label[0]?.toUpperCase() || "L");
+            return (
+              <MarkerF
+                key={lugar.place_id}
+                position={{
+                  lat: lugar.geometry.location.lat,
+                  lng: lugar.geometry.location.lng,
+                }}
+                title={lugar.name}
+                onClick={() => abrirDetalhes(lugar)}
+                icon={iconConfig || undefined}
+              />
+            );
+          })}
         </GoogleMap>
       </View>
 
@@ -226,7 +294,12 @@ export default function MapWeb() {
           <Ionicons name="navigate" size={20} color="#fff" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.botao, styles.filtrosButton]} onPress={() => router.push("/filtros")}>
+        <TouchableOpacity style={[styles.botao, styles.radiusButton]} onPress={abrirModalRaio}>
+          <Ionicons name="radio-outline" size={20} color="#fff" />
+          <Text style={styles.radiusButtonLabel}>{formatRadiusLabel()}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.botao, styles.filtrosButton]} onPress={abrirFiltros}>
           <Ionicons name="filter" size={20} color="#fff" />
           {filtrosAtivos.length > 0 && (
             <View style={styles.badge}>
@@ -315,6 +388,55 @@ export default function MapWeb() {
           </ScrollView>
         </View>
       </Modal>
+
+      <Modal
+        visible={radiusModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelarModalRaio}
+      >
+        <View style={styles.radiusModalBackdrop}>
+          <View style={styles.radiusModalContent}>
+            <View style={styles.radiusModalHeader}>
+              <Text style={styles.radiusModalTitle}>Raio de busca</Text>
+              <TouchableOpacity onPress={cancelarModalRaio}>
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.radiusLabel}>Selecionado: {formatRadiusDraftLabel()}</Text>
+            <Text style={styles.radiusHint}>Aplicado: {formatRadiusLabel()}</Text>
+            <Slider
+              style={styles.radiusSlider}
+              minimumValue={1}
+              maximumValue={10}
+              value={radiusDraft}
+              step={0.5}
+              minimumTrackTintColor="#6C47FF"
+              maximumTrackTintColor="#444"
+              thumbTintColor="#6C47FF"
+              onValueChange={setRadiusDraft}
+            />
+            <View style={styles.radiusScale}>
+              <Text style={styles.radiusScaleText}>1 km</Text>
+              <Text style={styles.radiusScaleText}>10 km</Text>
+            </View>
+            <View style={styles.radiusActions}>
+              <TouchableOpacity
+                style={[styles.radiusActionButton, styles.radiusCancel]}
+                onPress={cancelarModalRaio}
+              >
+                <Text style={styles.radiusActionText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.radiusActionButton, styles.radiusApply]}
+                onPress={aplicarRaio}
+              >
+                <Text style={[styles.radiusActionText, styles.radiusActionTextApply]}>Aplicar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -368,6 +490,30 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   infoText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  radiusLabel: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  radiusHint: {
+    color: "#bbb",
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  radiusSlider: {
+    width: "100%",
+    height: 40,
+  },
+  radiusScale: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  radiusScaleText: {
+    color: "#aaa",
+    fontSize: 12,
+  },
   botoesContainer: {
     position: "absolute",
     bottom: 40,
@@ -388,6 +534,18 @@ const styles = StyleSheet.create({
   },
   listaButton: { backgroundColor: "#9C27B0" },
   locationButton: { backgroundColor: "#6C47FF" },
+  radiusButton: {
+    backgroundColor: "#FF6B6B",
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    flexDirection: "column",
+  },
+  radiusButtonLabel: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    marginTop: 2,
+  },
   filtrosButton: { backgroundColor: "#4A90E2" },
   refreshButton: { backgroundColor: "#50E3C2" },
   badge: {
@@ -416,6 +574,43 @@ const styles = StyleSheet.create({
   modalContent: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
   emptyContainer: { alignItems: "center", justifyContent: "center", paddingTop: 60 },
   emptyText: { marginTop: 16, fontSize: 18, color: "#999", fontWeight: "600" },
+  radiusModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  radiusModalContent: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: "#1a1a1a",
+    borderRadius: 24,
+    padding: 20,
+  },
+  radiusModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  radiusModalTitle: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  radiusActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 16,
+  },
+  radiusActionButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  radiusCancel: { backgroundColor: "#2a2a2a" },
+  radiusApply: { backgroundColor: "#6C47FF" },
+  radiusActionText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  radiusActionTextApply: { color: "#fff" },
   lugarCard: {
     backgroundColor: "#1a1a1a",
     borderRadius: 16,

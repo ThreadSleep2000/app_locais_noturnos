@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -19,11 +19,7 @@ export default function LocalDetails() {
   const [detalhes, setDetalhes] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
-  useEffect(() => {
-    carregarDetalhes();
-  }, []);
-
-  const carregarDetalhes = async () => {
+  const carregarDetalhes = useCallback(async () => {
     try {
       if (params.placeId) {
         const dados = await buscarDetalhesLugar(params.placeId);
@@ -33,7 +29,11 @@ export default function LocalDetails() {
       console.error('Erro ao carregar detalhes:', error);
     }
     setCarregando(false);
-  };
+  }, [params.placeId]);
+
+  useEffect(() => {
+    carregarDetalhes();
+  }, [carregarDetalhes]);
 
   const abrirMaps = () => {
     const url = Platform.select({

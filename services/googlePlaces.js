@@ -1,5 +1,7 @@
 // Serviço para integração com Google Places API
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+export const DEFAULT_RADIUS_METERS = 2000;
+export const kmToMeters = (km) => Math.max(0, Math.round(km * 1000));
 
 /**
  * Busca lugares próximos com base na localização atual
@@ -9,7 +11,12 @@ const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
  * @param {number} radius - Raio de busca em metros (padrão: 5000m = 5km)
  * @returns {Promise<Array>} Lista de lugares encontrados
  */
-export const buscarLugaresProximos = async (latitude, longitude, type = 'restaurant', radius = 5000) => {
+export const buscarLugaresProximos = async (
+  latitude,
+  longitude,
+  type = 'restaurant',
+  radius = DEFAULT_RADIUS_METERS
+) => {
   try {
     const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=${type}&key=${GOOGLE_MAPS_API_KEY}`;
     
@@ -36,8 +43,12 @@ export const buscarLugaresProximos = async (latitude, longitude, type = 'restaur
  * @param {number} radius - Raio de busca em metros
  * @returns {Promise<Array>} Lista combinada de todos os lugares encontrados
  */
-export const buscarEstabelecimentosNoturnos = async (latitude, longitude, radius = 5000) => {
-  const tipos = ['bar', 'restaurant', 'night_club', 'cafe', 'meal_takeaway'];
+export const buscarEstabelecimentosNoturnos = async (
+  latitude,
+  longitude,
+  radius = DEFAULT_RADIUS_METERS
+) => {
+  const tipos = ['bar', 'restaurant', 'night_club', 'cafe', 'meal_takeaway', 'liquor_store'];
   
   try {
     // Busca todos os tipos em paralelo
@@ -92,7 +103,12 @@ export const buscarDetalhesLugar = async (placeId) => {
  * @param {number} radius - Raio de busca em metros
  * @returns {Promise<Array>} Lista de lugares encontrados
  */
-export const buscarPorTexto = async (query, latitude, longitude, radius = 5000) => {
+export const buscarPorTexto = async (
+  query,
+  latitude,
+  longitude,
+  radius = DEFAULT_RADIUS_METERS
+) => {
   try {
     const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${latitude},${longitude}&radius=${radius}&key=${GOOGLE_MAPS_API_KEY}`;
     
