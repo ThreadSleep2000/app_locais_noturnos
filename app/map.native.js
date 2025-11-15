@@ -1,3 +1,9 @@
+/**
+ * Mapa (iOS/Android)
+ * - Renderiza Google Maps via react-native-maps (PROVIDER_GOOGLE).
+ * - Integra com Places API para buscar lugares conforme filtros e raio.
+ * - Inclui busca por texto, lista, centralização, e controle de raio em modal.
+ */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
@@ -25,6 +31,9 @@ import {
 import { VENUE_TYPES, getVenueConfigByTypes } from '../constants/venueTypes';
 import { filterPlacesWithinRadius } from '../utils/distance';
 
+/**
+ * Componente principal do mapa nativo.
+ */
 export default function Map() {
   const params = useLocalSearchParams();
   const [localizacaoAtual, setLocalizacaoAtual] = useState(null);
@@ -70,6 +79,9 @@ export default function Map() {
     }
   }, [localizacaoAtual, buscarLugaresProximos]);
 
+  /**
+   * Solicita permissão e obtém a localização atual do usuário (alta precisão).
+   */
   const obterLocalizacao = async () => {
     try {
       // Solicita permissão de localização
@@ -104,6 +116,10 @@ export default function Map() {
     }
   };
 
+  /**
+   * Busca lugares próximos considerando filtros e raio selecionado.
+   * @param {number} [customRadiusKm] - Raio em km para sobrescrever o atual (opcional).
+   */
   const buscarLugaresProximos = useCallback(async (customRadiusKm) => {
     if (!localizacaoAtual) return;
 
@@ -149,6 +165,9 @@ export default function Map() {
     setBuscando(false);
   }, [localizacaoAtual, filtrosAtivos, radiusKm, filtrosParaTipos]);
 
+  /**
+   * Realiza busca por texto com base no raio atual.
+   */
   const realizarBusca = async () => {
     if (!buscaTexto.trim() || !localizacaoAtual) return;
 
@@ -170,6 +189,9 @@ export default function Map() {
     setBuscando(false);
   };
 
+  /**
+   * Navega para a tela de detalhes do local selecionado.
+   */
   const abrirDetalhes = (lugar) => {
     router.push({
       pathname: '/localDetails',
@@ -187,27 +209,34 @@ export default function Map() {
     });
   };
 
+  /** Centraliza a câmera do mapa na posição atual do usuário. */
   const centralizarNoUsuario = () => {
     if (mapRef.current && localizacaoAtual) {
       mapRef.current.animateToRegion(localizacaoAtual, 1000);
     }
   };
 
+  /** Abre o modal do controle de raio com o valor atual como rascunho. */
   const abrirModalRaio = () => {
     setRadiusDraft(radiusKm);
     setRadiusModalVisible(true);
   };
 
+  /** Fecha o modal do controle de raio sem aplicar mudanças. */
   const cancelarModalRaio = () => {
     setRadiusModalVisible(false);
   };
 
+  /**
+   * Aplica o novo raio e dispara nova busca.
+   */
   const aplicarRaio = () => {
     setRadiusKm(radiusDraft);
     setRadiusModalVisible(false);
     buscarLugaresProximos(radiusDraft);
   };
 
+  /** Abre a tela de filtros, mantendo os filtros ativos atuais. */
   const abrirFiltros = () => {
     router.push({
       pathname: '/filtros',

@@ -15,7 +15,7 @@
 
 ## Passo 2: Configurar as Chaves no Projeto
 
-### Configuração Unificada (Recomendado):
+### Configuração Unificada (Recomendado)
 
 Edite o arquivo `.env` na raiz do projeto com sua chave:
 
@@ -23,7 +23,7 @@ Edite o arquivo `.env` na raiz do projeto com sua chave:
 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=SUA_CHAVE_AQUI
 ```
 
-**Importante**: O projeto usa `app.config.js` ao invés de `app.json`, que automaticamente carrega a chave do `.env` para todas as plataformas (Web, Android e iOS). Você precisa configurar apenas uma vez no `.env`!
+Importante: o projeto usa `app.config.js` (ao invés de `app.json`) e carrega `process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` para Web, Android e iOS. Configure apenas uma vez no `.env`.
 
 ### Como funciona:
 
@@ -38,22 +38,22 @@ Todas as plataformas usam a mesma chave do `.env` automaticamente.
 
 No Google Cloud Console, configure restrições para sua chave:
 
-### Para a chave web (Places API):
+### Para a chave Web (Places API)
 - **Restrições de aplicativo**: Referenciadores HTTP
 - **Restrições de API**: Places API, Geocoding API
 
-### Para a chave Android:
+### Para a chave Android
 - **Restrições de aplicativo**: Apps Android
 - **Nome do pacote**: `com.anonymous.app_locais_noturnos`
 - **SHA-1**: [obtenha executando `keytool` no seu keystore]
 
-### Para a chave iOS:
+### Para a chave iOS
 - **Restrições de aplicativo**: Apps iOS
 - **IDs do pacote**: `com.anonymous.app-locais-noturnos`
 
 ## Funcionalidades Implementadas
 
-✅ **Localização em tempo real**: O app solicita permissão e mostra a posição atual do usuário no mapa
+✅ **Localização em tempo real**: O app solicita permissão e mostra a posição atual do usuário no mapa.
 
 ✅ **Busca automática**: Ao abrir o mapa, busca automaticamente por:
 - Bares
@@ -62,11 +62,11 @@ No Google Cloud Console, configure restrições para sua chave:
 - Cafés
 - Lanchonetes (meal_takeaway)
 
-✅ **Busca por texto**: Barra de pesquisa para encontrar lugares específicos
+✅ **Busca por texto**: Barra de pesquisa para encontrar lugares específicos.
 
-✅ **Marcadores interativos**: Cada lugar encontrado aparece como marcador no mapa
+✅ **Marcadores interativos**: Cada lugar encontrado aparece como marcador no mapa.
 
-✅ **Navegação para detalhes**: Clique em um marcador para ver detalhes do lugar
+✅ **Navegação para detalhes**: Clique em um marcador para ver detalhes do lugar.
 
 ✅ **Botões de controle**:
 - 🧭 Centralizar no usuário
@@ -82,13 +82,16 @@ app_locais_noturnos/
 ├── app.json                      # Configuração estática (mantido para referência)
 ├── services/
 │   └── googlePlaces.js          # Serviço de integração com Google Places API
-└── app/
-    └── map.js                   # Tela do mapa com todas as funcionalidades
+├── app/
+│   ├── map.js                   # Mapa Web (@react-google-maps/api)
+│   ├── map.native.js            # Mapa nativo (react-native-maps)
+│   └── filtros.js               # Tela de filtros
 ```
 
 ## Testando
 
 ```bash
+
 # Web
 npm run web
 
@@ -118,6 +121,11 @@ npm run ios
 
 ## Segurança
 
-⚠️ **IMPORTANTE**: O arquivo `.env` contém sua chave da API e NÃO deve ser commitado no Git.
+⚠️ Importante: o arquivo `.env` contém sua chave da API e NÃO deve ser commitado no Git.
+
+## Observações sobre limites
+
+- A Nearby Search do Places retorna até 20 resultados por requisição. O app combina múltiplos tipos e remove duplicatas para ampliar cobertura.
+- Recomendação de ambiente: Node 20.19+ para evitar avisos de engine com Expo/React Native 0.81.
 
 O `.gitignore` já está configurado para ignorar o arquivo `.env`. Nunca compartilhe suas chaves publicamente.

@@ -1,5 +1,14 @@
+/** Raio médio da Terra em metros. */
 export const EARTH_RADIUS_METERS = 6371000;
 
+/**
+ * Calcula a distância entre dois pontos (lat/lng) usando a fórmula de Haversine.
+ * @param {number} lat1
+ * @param {number} lon1
+ * @param {number} lat2
+ * @param {number} lon2
+ * @returns {number} Distância em metros
+ */
 export function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
   const toRad = (value) => (value * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);
@@ -12,6 +21,13 @@ export function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
   return EARTH_RADIUS_METERS * c;
 }
 
+/**
+ * Filtra uma lista de lugares mantendo apenas os que estão dentro do raio informado.
+ * @param {Array} places - Lista de lugares (Google Places API)
+ * @param {{latitude:number, longitude:number}} origin - Posição de referência
+ * @param {number} radiusMeters - Raio em metros
+ * @returns {Array} Lugares dentro do raio
+ */
 export function filterPlacesWithinRadius(places = [], origin, radiusMeters) {
   if (!origin || typeof origin.latitude !== 'number' || typeof origin.longitude !== 'number') {
     return places;

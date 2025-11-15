@@ -1,50 +1,82 @@
-# Welcome to your Expo app 👋
+# Bora Sair – Locais Noturnos
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo Expo (Android, iOS e Web) para descobrir bares, restaurantes e baladas próximos, com filtros por categoria e controle de raio de busca.
 
-## Get started
+## Requisitos
 
-1. Install dependencies
+- Node.js 20.19+ recomendado (npm 10+). Versões mais antigas podem emitir avisos.
+- Chave da API do Google Maps (Places + Maps SDKs). Veja `GOOGLE_MAPS_SETUP.md`.
 
-   ```bash
-   npm install
-   ```
+## Instalação
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```powershell
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Crie um arquivo `.env` na raiz com sua chave:
 
-## Learn more
+```env
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=SUACHAVEAQUI
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Executando
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```powershell
+# Dev server (escolha a plataforma no menu)
+npx expo start
 
-## Join the community
+# Web direto
+npm run web
 
-Join our community of developers creating universal apps.
+# Android (com emulador/dispositivo)
+npm run android
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# iOS (apenas no macOS com Xcode)
+npm run ios
+```
+
+## Arquitetura
+
+- Web: `@react-google-maps/api` para renderização do mapa.
+- Android/iOS: `react-native-maps` (PROVIDER_GOOGLE).
+- Buscas: Google Places API via `services/googlePlaces.js`.
+- Filtros: mapeados em `constants/venueTypes.js`.
+- Utilidades de distância/raio: `utils/distance.js`.
+
+## Funcionalidades
+
+- Localização do usuário e centralização do mapa.
+- Busca automática por locais próximos (com tipos combinados) e por texto.
+- Filtros por categoria com contagem e badge no botão.
+- Controle de raio (1–10 km) com modal e aplicação explícita.
+- Lista de resultados com navegação para detalhes do local.
+
+## Estrutura
+
+```
+app_locais_noturnos/
+├─ app/                    # Rotas (Expo Router) e telas
+│  ├─ map.js               # Mapa Web
+│  ├─ map.native.js        # Mapa nativo (Android/iOS)
+│  ├─ filtros.js           # Tela de filtros
+│  └─ ...
+├─ constants/              # Metadados de tipos de locais
+│  └─ venueTypes.js
+├─ services/
+│  └─ googlePlaces.js      # Integração com Google Places
+├─ utils/
+│  └─ distance.js          # Haversine e filtro por raio
+├─ assets/
+├─ app.config.js           # Configuração dinâmica do Expo
+├─ GOOGLE_MAPS_SETUP.md
+└─ README.md
+```
+
+## Notas
+
+- A Nearby Search do Places retorna até 20 resultados por requisição. Como buscamos múltiplos tipos, o app combina resultados e remove duplicados.
+- Para reduzir avisos de engine, prefira Node 20.19+
+
+## Licença
+
+Uso acadêmico/demonstrativo.

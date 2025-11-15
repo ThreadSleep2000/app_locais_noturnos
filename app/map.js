@@ -1,3 +1,9 @@
+/**
+ * Mapa (Web)
+ * - Renderiza Google Maps via @react-google-maps/api.
+ * - Busca lugares próximos (Places API) conforme filtros e raio.
+ * - Oferece busca por texto, lista, centralização e controle de raio.
+ */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, Modal } from "react-native";
 import Slider from "@react-native-community/slider";
@@ -14,6 +20,9 @@ import {
 import { VENUE_TYPES, getVenueConfigByTypes } from "../constants/venueTypes";
 import { filterPlacesWithinRadius } from "../utils/distance";
 
+/**
+ * Componente principal do mapa na Web.
+ */
 export default function MapWeb() {
   const params = useLocalSearchParams();
   const mapRef = useRef(null);
@@ -65,6 +74,9 @@ export default function MapWeb() {
     }
   }, [localizacaoAtual, buscarLugaresProximos]);
 
+  /**
+   * Solicita permissão e obtém a localização atual do usuário.
+   */
   const obterLocalizacao = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -84,6 +96,10 @@ export default function MapWeb() {
     }
   };
 
+  /**
+   * Busca lugares próximos considerando filtros e raio selecionado.
+   * @param {number} [customRadiusKm] - Raio em km para sobrescrever o atual (opcional).
+   */
   const buscarLugaresProximos = useCallback(async (customRadiusKm) => {
     if (!localizacaoAtual) return;
     setBuscando(true);
@@ -121,6 +137,9 @@ export default function MapWeb() {
     setBuscando(false);
   }, [localizacaoAtual, filtrosAtivos, radiusKm, filtrosParaTipos]);
 
+  /**
+   * Realiza busca por texto com base no raio atual.
+   */
   const realizarBusca = async () => {
     if (!buscaTexto.trim() || !localizacaoAtual) return;
     setBuscando(true);
@@ -139,6 +158,9 @@ export default function MapWeb() {
     setBuscando(false);
   };
 
+  /**
+   * Navega para a tela de detalhes do local selecionado.
+   */
   const abrirDetalhes = (lugar) => {
     router.push({
       pathname: "/localDetails",
@@ -161,10 +183,16 @@ export default function MapWeb() {
     return { lat: localizacaoAtual.latitude, lng: localizacaoAtual.longitude };
   }, [localizacaoAtual]);
 
+  /**
+   * Callback de carregamento do mapa para manter uma ref do objeto Map.
+   */
   const onMapLoad = (map) => {
     mapRef.current = map;
   };
 
+  /**
+   * Centraliza o mapa na posição atual do usuário.
+   */
   const centralizarNoUsuario = () => {
     if (mapRef.current && localizacaoAtual) {
       mapRef.current.panTo(center);
@@ -172,21 +200,27 @@ export default function MapWeb() {
     }
   };
 
+  /** Abre o modal do controle de raio com o valor atual como rascunho. */
   const abrirModalRaio = () => {
     setRadiusDraft(radiusKm);
     setRadiusModalVisible(true);
   };
 
+  /** Fecha o modal do controle de raio sem aplicar mudanças. */
   const cancelarModalRaio = () => {
     setRadiusModalVisible(false);
   };
 
+  /**
+   * Aplica o novo raio e dispara nova busca.
+   */
   const aplicarRaio = () => {
     setRadiusKm(radiusDraft);
     setRadiusModalVisible(false);
     buscarLugaresProximos(radiusDraft);
   };
 
+  /** Abre a tela de filtros, mantendo os filtros ativos atuais. */
   const abrirFiltros = () => {
     router.push({
       pathname: "/filtros",

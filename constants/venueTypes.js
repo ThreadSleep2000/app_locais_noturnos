@@ -1,3 +1,7 @@
+/**
+ * Configuração de tipos de estabelecimentos suportados pelo app.
+ * Mapeia rótulos amigáveis a tipos do Google Places e metadados visuais.
+ */
 export const VENUE_TYPES = {
   Bares: {
     id: "Bares",
@@ -50,13 +54,20 @@ export const VENUE_TYPES = {
   },
 };
 
+/** Lista linear de tipos (útil para iteração em UI). */
 export const VENUE_TYPE_LIST = Object.values(VENUE_TYPES);
 
+/** Mapa reverso: tipo do Google Places -> config do app. */
 export const googleTypeToVenue = Object.values(VENUE_TYPES).reduce((acc, config) => {
   acc[config.googleType] = config;
   return acc;
 }, {});
 
+/**
+ * Retorna a primeira configuração compatível entre uma lista de tipos do Google.
+ * @param {string[]} [types=[]]
+ * @returns {{id:string,label:string,googleType:string,icon:string,color:string}}
+ */
 export function getVenueConfigByTypes(types = []) {
   if (!Array.isArray(types)) {
     return VENUE_TYPES.Bares;

@@ -1,4 +1,8 @@
-// Serviço para integração com Google Places API
+/**
+ * Serviço para integração com Google Places API.
+ * Observação: A Nearby Search retorna até 20 resultados por requisição.
+ * Este serviço agrega tipos quando necessário e filtra duplicados.
+ */
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 export const DEFAULT_RADIUS_METERS = 2000;
 export const kmToMeters = (km) => Math.max(0, Math.round(km * 1000));
@@ -10,6 +14,14 @@ export const kmToMeters = (km) => Math.max(0, Math.round(km * 1000));
  * @param {string} type - Tipo de lugar (bar, restaurant, night_club, etc)
  * @param {number} radius - Raio de busca em metros (padrão: 5000m = 5km)
  * @returns {Promise<Array>} Lista de lugares encontrados
+ */
+/**
+ * Nearby Search por tipo
+ * @param {number} latitude
+ * @param {number} longitude
+ * @param {string} [type="restaurant"] - Tipo do Places (bar, restaurant, etc)
+ * @param {number} [radius=DEFAULT_RADIUS_METERS] - Raio em metros
+ * @returns {Promise<Array>} Resultados da busca
  */
 export const buscarLugaresProximos = async (
   latitude,
@@ -42,6 +54,13 @@ export const buscarLugaresProximos = async (
  * @param {Array<string>} types - Array com tipos de lugares
  * @param {number} radius - Raio de busca em metros
  * @returns {Promise<Array>} Lista combinada de todos os lugares encontrados
+ */
+/**
+ * Busca agregada de estabelecimentos noturnos (múltiplos tipos)
+ * @param {number} latitude
+ * @param {number} longitude
+ * @param {number} [radius=DEFAULT_RADIUS_METERS]
+ * @returns {Promise<Array>} Resultados únicos combinados
  */
 export const buscarEstabelecimentosNoturnos = async (
   latitude,
@@ -76,6 +95,11 @@ export const buscarEstabelecimentosNoturnos = async (
  * @param {string} placeId - ID do lugar no Google Places
  * @returns {Promise<Object>} Detalhes do lugar
  */
+/**
+ * Detalhes de um lugar específico
+ * @param {string} placeId
+ * @returns {Promise<Object|null>} Detalhes do lugar
+ */
 export const buscarDetalhesLugar = async (placeId) => {
   try {
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${GOOGLE_MAPS_API_KEY}`;
@@ -102,6 +126,14 @@ export const buscarDetalhesLugar = async (placeId) => {
  * @param {number} longitude - Longitude da localização atual
  * @param {number} radius - Raio de busca em metros
  * @returns {Promise<Array>} Lista de lugares encontrados
+ */
+/**
+ * Text Search (busca por texto livre)
+ * @param {string} query
+ * @param {number} latitude
+ * @param {number} longitude
+ * @param {number} [radius=DEFAULT_RADIUS_METERS]
+ * @returns {Promise<Array>} Resultados encontrados
  */
 export const buscarPorTexto = async (
   query,

@@ -1,3 +1,8 @@
+/**
+ * Tela de Filtros
+ * - Permite selecionar/desselecionar tipos de estabelecimentos.
+ * - Aplica filtros retornando à tela do mapa.
+ */
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from "react-native";
 import { router, useLocalSearchParams } from 'expo-router';
