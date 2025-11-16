@@ -43,10 +43,11 @@ export default function Map() {
   const [buscando, setBuscando] = useState(false);
   const [mostrarLista, setMostrarLista] = useState(false);
   const [filtrosAtivos, setFiltrosAtivos] = useState([]);
-  const [radiusKm, setRadiusKm] = useState(2);
+  const [radiusKm, setRadiusKm] = useState(1);
   const [radiusModalVisible, setRadiusModalVisible] = useState(false);
-  const [radiusDraft, setRadiusDraft] = useState(2);
+  const [radiusDraft, setRadiusDraft] = useState(1);
   const mapRef = useRef(null);
+  const requestSeqRef = useRef(0);
 
   // Mapeia filtros brasileiros para tipos do Google Places API
   const filtrosParaTipos = useMemo(() => ({
@@ -101,11 +102,18 @@ export default function Map() {
         accuracy: Location.Accuracy.High,
       });
 
-      setLocalizacaoAtual({
+      const preciseRegion = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setLocalizacaoAtual(preciseRegion);
+
+      requestAnimationFrame(() => {
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(preciseRegion, 500);
+        }
       });
 
       setCarregando(false);
@@ -123,6 +131,7 @@ export default function Map() {
   const buscarLugaresProximos = useCallback(async (customRadiusKm) => {
     if (!localizacaoAtual) return;
 
+    const requestId = ++requestSeqRef.current;
     setBuscando(true);
     try {
       let resultados = [];
@@ -158,11 +167,15 @@ export default function Map() {
       }
       
       const filtrados = filterPlacesWithinRadius(resultados, localizacaoAtual, radiusMeters);
-      setLugares(filtrados);
+      if (requestSeqRef.current === requestId) {
+        setLugares(filtrados);
+      }
     } catch (error) {
       console.error('Erro ao buscar lugares:', error);
     }
-    setBuscando(false);
+    if (requestSeqRef.current === requestId) {
+      setBuscando(false);
+    }
   }, [localizacaoAtual, filtrosAtivos, radiusKm, filtrosParaTipos]);
 
   /**
@@ -212,7 +225,11 @@ export default function Map() {
   /** Centraliza a câmera do mapa na posição atual do usuário. */
   const centralizarNoUsuario = () => {
     if (mapRef.current && localizacaoAtual) {
-      mapRef.current.animateToRegion(localizacaoAtual, 1000);
+      mapRef.current.animateToRegion({
+        ...localizacaoAtual,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 600);
     }
   };
 

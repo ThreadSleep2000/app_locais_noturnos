@@ -7,6 +7,60 @@ const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 export const DEFAULT_RADIUS_METERS = 2000;
 export const kmToMeters = (km) => Math.max(0, Math.round(km * 1000));
 
+const MAX_PAGES = 3; // Google Places retorna no máximo 60 resultados (3 páginas de 20)
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const buildNearbyUrl = ({ latitude, longitude, type, radius, pageToken }) => {
+  const base = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+  const params = new URLSearchParams();
+  params.set('key', GOOGLE_MAPS_API_KEY);
+
+  if (pageToken) {
+    params.set('pagetoken', pageToken);
+  } else {
+    params.set('location', `${latitude},${longitude}`);
+    params.set('radius', radius.toString());
+    if (type) params.set('type', type);
+  }
+
+  return `${base}?${params.toString()}`;
+};
+
+async function fetchNearbyPages({ latitude, longitude, type, radius }) {
+  let pageToken;
+  const allResults = [];
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const url = buildNearbyUrl({ latitude, longitude, type, radius, pageToken });
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.status === 'OK' && Array.isArray(data.results)) {
+      allResults.push(...data.results);
+    } else if (data.status === 'ZERO_RESULTS') {
+      break;
+    } else if (data.status === 'INVALID_REQUEST' && pageToken) {
+      // Quando o next_page_token ainda não está pronto, aguardar e tentar de novo
+      await sleep(1500);
+      page--;
+      continue;
+    } else {
+      console.error('Erro ao buscar lugares:', data.status);
+      break;
+    }
+
+    if (!data.next_page_token) {
+      break;
+    }
+
+    pageToken = data.next_page_token;
+    await sleep(2000); // Google exige pequena espera antes da próxima página
+  }
+
+  return allResults;
+}
+
 /**
  * Busca lugares próximos com base na localização atual
  * @param {number} latitude - Latitude da localização atual
@@ -30,17 +84,7 @@ export const buscarLugaresProximos = async (
   radius = DEFAULT_RADIUS_METERS
 ) => {
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=${type}&key=${GOOGLE_MAPS_API_KEY}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data.status === 'OK') {
-      return data.results;
-    } else {
-      console.error('Erro ao buscar lugares:', data.status);
-      return [];
-    }
+    return await fetchNearbyPages({ latitude, longitude, type, radius });
   } catch (error) {
     console.error('Erro na requisição:', error);
     return [];
@@ -70,15 +114,12 @@ export const buscarEstabelecimentosNoturnos = async (
   const tipos = ['bar', 'restaurant', 'night_club', 'cafe', 'meal_takeaway', 'liquor_store'];
   
   try {
-    // Busca todos os tipos em paralelo
-    const promises = tipos.map(tipo => 
-      buscarLugaresProximos(latitude, longitude, tipo, radius)
-    );
+    const todosLugares = [];
+    for (const tipo of tipos) {
+      const resultadosTipo = await fetchNearbyPages({ latitude, longitude, type: tipo, radius });
+      todosLugares.push(...resultadosTipo);
+    }
     
-    const resultados = await Promise.all(promises);
-    
-    // Combina todos os resultados e remove duplicatas
-    const todosLugares = resultados.flat();
     const lugaresUnicos = todosLugares.filter((lugar, index, self) =>
       index === self.findIndex((l) => l.place_id === lugar.place_id)
     );
@@ -135,6 +176,55 @@ export const buscarDetalhesLugar = async (placeId) => {
  * @param {number} [radius=DEFAULT_RADIUS_METERS]
  * @returns {Promise<Array>} Resultados encontrados
  */
+const buildTextSearchUrl = ({ query, latitude, longitude, radius, pageToken }) => {
+  const base = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
+  const params = new URLSearchParams();
+  params.set('key', GOOGLE_MAPS_API_KEY);
+
+  if (pageToken) {
+    params.set('pagetoken', pageToken);
+  } else {
+    params.set('query', query);
+    params.set('location', `${latitude},${longitude}`);
+    params.set('radius', radius.toString());
+  }
+
+  return `${base}?${params.toString()}`;
+};
+
+async function fetchTextSearchPages({ query, latitude, longitude, radius }) {
+  let pageToken;
+  const allResults = [];
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const url = buildTextSearchUrl({ query, latitude, longitude, radius, pageToken });
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.status === 'OK' && Array.isArray(data.results)) {
+      allResults.push(...data.results);
+    } else if (data.status === 'ZERO_RESULTS') {
+      break;
+    } else if (data.status === 'INVALID_REQUEST' && pageToken) {
+      await sleep(1500);
+      page--;
+      continue;
+    } else {
+      console.error('Erro ao buscar por texto:', data.status);
+      break;
+    }
+
+    if (!data.next_page_token) {
+      break;
+    }
+
+    pageToken = data.next_page_token;
+    await sleep(2000);
+  }
+
+  return allResults;
+}
+
 export const buscarPorTexto = async (
   query,
   latitude,
@@ -142,17 +232,7 @@ export const buscarPorTexto = async (
   radius = DEFAULT_RADIUS_METERS
 ) => {
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${latitude},${longitude}&radius=${radius}&key=${GOOGLE_MAPS_API_KEY}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data.status === 'OK') {
-      return data.results;
-    } else {
-      console.error('Erro ao buscar por texto:', data.status);
-      return [];
-    }
+    return await fetchTextSearchPages({ query, latitude, longitude, radius });
   } catch (error) {
     console.error('Erro na requisição:', error);
     return [];
