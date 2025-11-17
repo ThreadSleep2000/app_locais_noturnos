@@ -27,6 +27,7 @@ export default function MapWeb() {
   const params = useLocalSearchParams();
   const mapRef = useRef(null);
   const markerIconCache = useRef({});
+  const requestSeqRef = useRef(0);
 
   const [carregando, setCarregando] = useState(true);
   const [buscando, setBuscando] = useState(false);
@@ -35,9 +36,10 @@ export default function MapWeb() {
   const [lugares, setLugares] = useState([]);
   const [filtrosAtivos, setFiltrosAtivos] = useState([]);
   const [localizacaoAtual, setLocalizacaoAtual] = useState(null);
-  const [radiusKm, setRadiusKm] = useState(2);
+  const [radiusKm, setRadiusKm] = useState(1);
   const [radiusModalVisible, setRadiusModalVisible] = useState(false);
-  const [radiusDraft, setRadiusDraft] = useState(2);
+  const [radiusDraft, setRadiusDraft] = useState(1);
+  const DEFAULT_ZOOM = 15;
 
   const filtrosParaTipos = useMemo(() => ({
     Bares: VENUE_TYPES.Bares.googleType,
@@ -74,6 +76,16 @@ export default function MapWeb() {
     }
   }, [localizacaoAtual, buscarLugaresProximos]);
 
+  useEffect(() => {
+    if (mapRef.current && localizacaoAtual) {
+      mapRef.current.panTo({
+        lat: localizacaoAtual.latitude,
+        lng: localizacaoAtual.longitude,
+      });
+      mapRef.current.setZoom(DEFAULT_ZOOM);
+    }
+  }, [localizacaoAtual]);
+
   /**
    * Solicita permissão e obtém a localização atual do usuário.
    */
@@ -102,6 +114,8 @@ export default function MapWeb() {
    */
   const buscarLugaresProximos = useCallback(async (customRadiusKm) => {
     if (!localizacaoAtual) return;
+
+    const requestId = ++requestSeqRef.current;
     setBuscando(true);
     try {
       let resultados = [];
@@ -130,11 +144,15 @@ export default function MapWeb() {
         );
       }
       const filtrados = filterPlacesWithinRadius(resultados, localizacaoAtual, radiusMeters);
-      setLugares(filtrados);
+      if (requestSeqRef.current === requestId) {
+        setLugares(filtrados);
+      }
     } catch (error) {
       console.error("Erro ao buscar lugares (web):", error);
     }
-    setBuscando(false);
+    if (requestSeqRef.current === requestId) {
+      setBuscando(false);
+    }
   }, [localizacaoAtual, filtrosAtivos, radiusKm, filtrosParaTipos]);
 
   /**
@@ -196,7 +214,7 @@ export default function MapWeb() {
   const centralizarNoUsuario = () => {
     if (mapRef.current && localizacaoAtual) {
       mapRef.current.panTo(center);
-      mapRef.current.setZoom(14);
+      mapRef.current.setZoom(DEFAULT_ZOOM);
     }
   };
 
@@ -270,7 +288,7 @@ export default function MapWeb() {
           onLoad={onMapLoad}
           mapContainerStyle={styles.mapStyle}
           center={center}
-          zoom={14}
+          zoom={DEFAULT_ZOOM}
           options={{ streetViewControl: false, fullscreenControl: false }}
         >
           {lugares.map((lugar) => {
