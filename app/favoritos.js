@@ -14,17 +14,14 @@ import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { favoriteAPI } from '../services/api';
 
-/**
- * Tela de favoritos
- * Lista todos os locais favoritados pelo usuário, ordenados do mais recente ao mais antigo
- */
+/** Lista de locais favoritados pelo usuário com remoção e navegação para detalhes */
 export default function Favoritos() {
   const { user, token } = useAuth();
   const [favoritos, setFavoritos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  /** Carrega a lista de favoritos do usuário. */
+  /** Busca favoritos do backend (ordenados do mais recente ao mais antigo) */
   const carregarFavoritos = useCallback(async () => {
     if (!user || !token) {
       setCarregando(false);
@@ -47,13 +44,13 @@ export default function Favoritos() {
     carregarFavoritos();
   }, [carregarFavoritos]);
 
-  /** Pull to refresh. */
+  /** Atualiza lista com gesto de pull-to-refresh */
   const onRefresh = () => {
     setRefreshing(true);
     carregarFavoritos();
   };
 
-  /** Navega para a tela de detalhes do local. */
+  /** Navega para detalhes do local com todos os parâmetros necessários */
   const abrirDetalhes = (favorito) => {
     router.push({
       pathname: '/localDetails',
@@ -68,7 +65,7 @@ export default function Favoritos() {
     });
   };
 
-  /** Remove favorito com confirmação. */
+  /** Remove favorito com confirmação via alert e atualiza lista local */
   const removerFavorito = async (favorito) => {
     Alert.alert(
       'Remover favorito',
@@ -94,7 +91,7 @@ export default function Favoritos() {
     );
   };
 
-  /** Renderiza cada card de favorito. */
+  /** Renderiza card com nome, tipo, endereço, rating e botão de remover */
   const renderFavorito = ({ item }) => {
     let tipos = [];
     if (Array.isArray(item.types)) {
@@ -167,7 +164,6 @@ export default function Favoritos() {
     );
   };
 
-  // Tela de loading inicial
   if (carregando) {
     return (
       <View style={styles.centerContainer}>
@@ -177,7 +173,6 @@ export default function Favoritos() {
     );
   }
 
-  // Usuário não logado
   if (!user) {
     return (
       <View style={styles.centerContainer}>
@@ -196,7 +191,6 @@ export default function Favoritos() {
     );
   }
 
-  // Lista vazia
   if (favoritos.length === 0) {
     return (
       <View style={styles.centerContainer}>
@@ -215,7 +209,6 @@ export default function Favoritos() {
     );
   }
 
-  // Lista de favoritos
   return (
     <View style={styles.container}>
       <View style={styles.header}>

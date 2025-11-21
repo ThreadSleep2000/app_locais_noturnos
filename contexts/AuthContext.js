@@ -1,7 +1,4 @@
-/**
- * Auth Context
- * Gerencia estado global de autenticação no app.
- */
+/** Context para gerenciar autenticação global com AsyncStorage e JWT */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userAPI } from '../services/api';
@@ -11,36 +8,31 @@ const AuthContext = createContext(null);
 const TOKEN_KEY = '@locaisNoturnos:token';
 const USER_KEY = '@locaisNoturnos:user';
 
-/**
- * Provider de autenticação.
- */
+/** Provider de autenticação com persistência e validação de token */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Carrega dados do usuário do AsyncStorage ao iniciar
+
   useEffect(() => {
     loadStoredData();
   }, []);
 
-  /**
-   * Carrega token e usuário salvos no AsyncStorage.
-   */
+  /** Carrega e valida token/usuário do AsyncStorage ao iniciar app */
   async function loadStoredData() {
     try {
       const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
       const storedUser = await AsyncStorage.getItem(USER_KEY);
 
       if (storedToken && storedUser) {
-        // Valida token com o backend
+
         const isValid = await userAPI.validateToken(storedToken);
         
         if (isValid) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
         } else {
-          // Token inválido, limpa dados
           await clearStorage();
         }
       }
@@ -51,9 +43,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  /**
-   * Salva token e usuário no AsyncStorage.
-   */
+  /** Persiste token e usuário no AsyncStorage */
   async function saveToStorage(token, user) {
     try {
       await AsyncStorage.setItem(TOKEN_KEY, token);
@@ -63,9 +53,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  /**
-   * Limpa dados do AsyncStorage.
-   */
+  /** Remove token e usuário do AsyncStorage */
   async function clearStorage() {
     try {
       await AsyncStorage.removeItem(TOKEN_KEY);
@@ -75,12 +63,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  /**
-   * Faz login do usuário.
-   * @param {string} email 
-   * @param {string} password 
-   * @returns {Promise<Object>} user
-   */
+  /** Autentica usuário e salva token/dados - preserva error.code para tratamento na UI */
   async function signIn(email, password) {
     try {
       const { user: userData, token: userToken } = await userAPI.login({ 
@@ -100,13 +83,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  /**
-   * Registra novo usuário.
-   * @param {string} email 
-   * @param {string} password 
-   * @param {string} name 
-   * @returns {Promise<Object>} user
-   */
+  /** Cria nova conta e autentica automaticamente - preserva error.code */
   async function signUp(email, password, name) {
     try {
       const { user: userData, token: userToken } = await userAPI.register({ 
@@ -127,20 +104,14 @@ export function AuthProvider({ children }) {
     }
   }
 
-  /**
-   * Faz logout do usuário.
-   */
+  /** Remove autenticação e limpa dados persistidos */
   async function signOut() {
     setUser(null);
     setToken(null);
     await clearStorage();
   }
 
-  /**
-   * Atualiza perfil do usuário.
-   * @param {Object} updates - { name?, avatar_url? }
-   * @returns {Promise<Object>} user atualizado
-   */
+  /** Atualiza dados do perfil (name, avatar_url) e persiste localmente */
   async function updateProfile(updates) {
     try {
       if (!token) {
@@ -158,9 +129,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  /**
-   * Recarrega dados do perfil do usuário.
-   */
+  /** Sincroniza dados do perfil com backend */
   async function refreshProfile() {
     try {
       if (!token) {
@@ -197,9 +166,7 @@ export function AuthProvider({ children }) {
   );
 }
 
-/**
- * Hook para usar o contexto de autenticação.
- */
+/** Hook para acessar estado e funções de autenticação */
 export function useAuth() {
   const context = useContext(AuthContext);
   

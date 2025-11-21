@@ -4,9 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
-/**
- * Tela de Perfil carregando dados do usuário autenticado da API.
- */
+/** Perfil do usuário com ações: Fotos, Recompensas, Logout */
 export default function Perfil() {
   const { user, signed, refreshProfile, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -28,7 +26,7 @@ export default function Perfil() {
     }
   }
 
-  // Removido: ação de adicionar estrelas ao nome (não utilizada)
+
 
   if (!signed) {
     return (
@@ -58,7 +56,7 @@ export default function Perfil() {
 
           <Text style={styles.sectionTitle}>Ações</Text>
 
-          {/* Ordem: Fotos, Recompensas, Sair */}
+
           <TouchableOpacity style={styles.button} onPress={() => router.push('/fotos')}>
             <Text style={styles.buttonText}>Fotos</Text>
           </TouchableOpacity>

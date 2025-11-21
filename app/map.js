@@ -16,9 +16,9 @@ import {
   buscarPorTexto,
   buscarLugaresProximos as buscarLugaresPorTipo,
   kmToMeters,
-} from "../services/googlePlaces";
-import { VENUE_TYPES, getVenueConfigByTypes } from "../constants/venueTypes";
-import { filterPlacesWithinRadius } from "../utils/distance";
+} from "../lib/services/googlePlaces";
+import { VENUE_TYPES, getVenueConfigByTypes } from "../lib/constants/venueTypes";
+import { filterPlacesWithinRadius } from "../lib/utils/distance";
 
 /**
  * Componente principal do mapa na Web.

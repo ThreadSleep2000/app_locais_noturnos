@@ -4,9 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 
-/**
- * Tela de login integrada ao backend.
- */
+/** Login com autenticação JWT e redirecionamento automático para registro se email não encontrado */
 export default function LoginScreen() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
@@ -24,7 +22,6 @@ export default function LoginScreen() {
       router.replace('/inicio');
     } catch (error) {
       if (error.code === 'USER_NOT_FOUND') {
-        // Redireciona para registro com email pré-preenchido
         router.push({
           pathname: '/register',
           params: {
@@ -46,13 +43,13 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Bora Sair</Text>
 
-      {/* Botão Google Login (placeholder) */}
+
       <TouchableOpacity style={[styles.googleButton, loading && styles.buttonDisabled]} disabled={loading}>
         <Ionicons name="logo-google" size={22} color="#fff" style={{ marginRight: 8 }} />
         <Text style={styles.googleButtonText}>Continuar com Google</Text>
       </TouchableOpacity>
 
-      {/* Divisor */}
+
       <View style={styles.dividerContainer}>
         <View style={styles.dividerLine} />
         <Text style={styles.dividerText}>ou</Text>
