@@ -27,9 +27,9 @@ import {
   buscarPorTexto,
   buscarLugaresProximos as buscarLugaresPorTipo,
   kmToMeters,
-} from '../services/googlePlaces';
-import { VENUE_TYPES, getVenueConfigByTypes } from '../constants/venueTypes';
-import { filterPlacesWithinRadius } from '../utils/distance';
+} from '../lib/services/googlePlaces';
+import { VENUE_TYPES, getVenueConfigByTypes } from '../lib/constants/venueTypes';
+import { filterPlacesWithinRadius } from '../lib/utils/distance';
 
 const MAX_RADIUS_KM = 5;
 const MIN_ZOOM_LEVEL = 12;

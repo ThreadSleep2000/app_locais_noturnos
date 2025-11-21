@@ -4,9 +4,7 @@ import { StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, ActivityInd
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalSearchParams } from 'expo-router';
 
-/**
- * Fluxo de registro que envia dados ao backend via API.
- */
+/** Registro de nova conta com validação e suporte a pre-fill de email via params */
 export default function RegisterScreen() {
   const { signUp } = useAuth();
   const { emailInicial, motivo } = useLocalSearchParams();

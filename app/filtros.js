@@ -1,18 +1,12 @@
-/**
- * Tela de Filtros
- * - Permite selecionar/desselecionar tipos de estabelecimentos.
- * - Aplica filtros retornando à tela do mapa.
- */
+/** Filtros de tipos de estabelecimentos e avaliação mínima para busca no mapa */
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from "react-native";
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { VENUE_TYPE_LIST } from "../constants/venueTypes";
+import { VENUE_TYPE_LIST } from "../lib/constants/venueTypes";
 
-/**
- * Lista interativa que envia os filtros selecionados de volta para o mapa.
- */
+/** Filtros interativos com seleção múltipla e aplicação via router params */
 export default function Filtros() {
   const params = useLocalSearchParams();
   const [selecionados, setSelecionados] = useState([]);
@@ -37,7 +31,7 @@ export default function Filtros() {
     }
   }, [params.selecionados, params.notaMinima]);
 
-  /** Alterna a seleção de um filtro específico. */
+  /** Adiciona/remove filtro da seleção */
   function toggleFiltro(item) {
     if (selecionados.includes(item)) {
       setSelecionados(selecionados.filter((f) => f !== item));
@@ -46,7 +40,7 @@ export default function Filtros() {
     }
   }
 
-  /** Persiste os filtros escolhidos e retorna ao mapa. */
+  /** Envia filtros selecionados ao mapa via router params */
   function aplicarFiltros() {
     router.replace({
       pathname: '/map',
@@ -57,7 +51,7 @@ export default function Filtros() {
     });
   }
 
-  /** Remove todos os filtros marcados pelo usuário. */
+  /** Reseta todos os filtros para valores padrão */
   function limparFiltros() {
     setSelecionados([]);
     setNotaMinima(0);
@@ -79,7 +73,6 @@ export default function Filtros() {
       </View>
 
       <ScrollView style={styles.lista}>
-        {/* Seção de Avaliação Mínima */}
         <View style={styles.secaoAvaliacao}>
           <View style={styles.secaoHeader}>
             <Ionicons name="star" size={24} color="#FFD700" />
@@ -108,7 +101,6 @@ export default function Filtros() {
           </View>
         </View>
 
-        {/* Tipos de Estabelecimentos */}
         <View style={styles.secaoHeader}>
           <Ionicons name="business" size={24} color="#6C47FF" />
           <Text style={styles.secaoTitulo}>Tipos de Estabelecimentos</Text>
